@@ -2,50 +2,60 @@
 #include <fstream>
 #include <vector>
 
+/*
+ * Task 27:
+ *     Задан текстовый файл.
+ *     Каждая строка содержит не более 255 символов.
+ *     Создать новый файл, в котором строки будут следовать в обратном порядке. Размер файла  не ограничивается.
+ *     Запрещается размещать файл целиком в основной памяти.
+ *     Файлы размером порядка 10 Мгб должны обрабатываться не более 2 сек.
+ * Name:
+ *     Дмитрий Рыбаков, ПС-21
+ * Environment:
+ *     gcc version 11.4.0 (Ubuntu 11.4.0-1ubuntu1~22.04)
+ */
+
+using namespace std;
 
 int main(int argc, char * args[])
 {
     if (argc != 3)  // + сам файл
     {
-        std::cout << "Передано неверное количество файлов" << std::endl;
+        cout << "Передано неверное количество файлов" << endl;
         return 1;
     }
 
-    std::ifstream inFile(args[1], std::ios::binary);
-    std::ofstream outFile(args[2]);
+    ifstream inFile(args[1]);
+    ofstream outFile(args[2]);
 
     if (!inFile.is_open())
     {
-        std::cout << "Ошибка открытия файла " << args[1] << std::endl;
+        cout << "Ошибка открытия файла " << args[1] << endl;
         return 1;
     }
     if (!outFile.is_open())
     {
-        std::cout << "Ошибка открытия файла " << args[2] << std::endl;
+        cout << "Ошибка открытия файла " << args[2] << endl;
         return 1;
     }
 
-    std::string line;
-    std::vector<std::streampos> lineStarts;
+    string line;
+    vector<streampos> lineStarts;
     int counter = 0;
-   
+
     lineStarts.push_back(inFile.tellg());
-    while (std::getline(inFile, line))
+    while (getline(inFile, line))
     {
         lineStarts.push_back(inFile.tellg());
         counter++;
     }
 
-    std::cout << inFile.tellg();
-
     for (int i = counter - 1; i >= 0; i--)
     {
+        inFile.clear();
         inFile.seekg(lineStarts[i]);
-
-        std::cout << (int)inFile.tellg() << " " << lineStarts[i] << std::endl;
-
-        std::getline(inFile, line);
-        outFile << line << std::endl;
+        getline(inFile, line);
+        outFile << line << endl;
     }
 
     inFile.close();
