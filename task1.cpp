@@ -11,7 +11,9 @@
  *     Файлы размером порядка 10 Мгб должны обрабатываться не более 2 сек.
  * Name:
  *     Дмитрий Рыбаков, ПС-21
- * Environment:
+ * IDE:
+ *     clion-2024.2.1
+ * Compiler:
  *     gcc version 11.4.0 (Ubuntu 11.4.0-1ubuntu1~22.04)
  */
 
@@ -19,6 +21,7 @@ using namespace std;
 
 int main(int argc, char * args[])
 {
+    setlocale(LC_ALL, "RU");
     if (argc != 3)  // + сам файл
     {
         cout << "Передано неверное количество файлов" << endl;
