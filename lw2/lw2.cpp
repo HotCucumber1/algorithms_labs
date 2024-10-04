@@ -1,6 +1,8 @@
 #include <iostream>
 #include <fstream>
 #include <vector>
+#include <string>
+#include <cmath>
 
 /*
  * Task 23.
@@ -31,12 +33,14 @@ std::string pop(Stack *& ptr);
 std::string getTop(Stack *& ptr);
 void printStack(Stack *& ptr);
 
-int getIntFromString(std::string & number);
+float countPolish(std::vector<std::string> polish, bool negative);
 
 bool isNumeric(std::string & number);
 int getOperationPriority(std::string & operation);
 
 std::vector<std::string> parseInput(std::string & expression);
+
+
 
 int main(int argc, char * args[])
 {
@@ -55,23 +59,34 @@ int main(int argc, char * args[])
 
     Stack * top = nullptr;
     std::vector<std::string> polish;
+    bool negative = false;
 
     std::string expression;
     getline(inFile, expression);
 
-    const int spaceCount = (int) expression.length(); // 2 пробела по бокам
+    const int spaceCount = (int) expression.length();
     std::string resultString = " Result";
 
     std::cout << "Element" << '\t' << "|" << resultString;
-    for (int i = 0; i < spaceCount - resultString.length(); i++)
+    int spaces = spaceCount - resultString.length();
+    if (spaces > 0)
     {
-        std::cout << ' ';
+        for (int i = 0; i < spaces; i++)
+        {
+            std::cout << ' ';
+        }
     }
+
     resultString = "";
     std::cout << "| Stack" << std::endl;
 
     for (auto element : parseInput(expression))
     {
+        // Правило 0
+        if (element == "~")
+        {
+            negative = true;
+        }
         // Правило 1
         if (isNumeric(element))
         {
@@ -138,9 +153,13 @@ int main(int argc, char * args[])
             resultString += ' ' + el;
         }
         std::cout << resultString;
-        for (int i = 0; i < spaceCount - resultString.length(); i++)
+        spaces = spaceCount - resultString.length();
+        if (spaces > 0)
         {
-            std::cout << ' ';
+            for (int i = 0; i < spaces; i++)
+            {
+                std::cout << ' ';
+            }
         }
         std::cout << "| ";
         resultString = "";
@@ -160,10 +179,9 @@ int main(int argc, char * args[])
     }
     std::cout << std::endl;
 
-
+    // Счет
+    std::cout << std::endl << "Result: " << countPolish(polish, negative) << std::endl;
 }
-
-
 
 
 
@@ -205,28 +223,12 @@ bool isNumeric(std::string & number)
     return true;
 }
 
-int getIntFromString(std::string & number)
-{
-    int intNumber = 0;
-    int start = 0;
-    bool isNegative = false;
-
-    if (number[start] == '-')
-    {
-        isNegative = true;
-        start = 1;
-    }
-    for (int i = start; i < number.length(); i++)
-    {
-        intNumber = 10 * intNumber + (number[i] - '0');
-    }
-    return isNegative ? -intNumber : intNumber;
-}
 
 int getOperationPriority(std::string & operation)
 {
-    if (operation == "EXP") return 3;
-    if (operation == "SIN" || operation == "COS") return 2;
+    if (operation == "EXP") return 4;
+    if (operation == "SIN" || operation == "COS") return 3;
+    if (operation == "^") return 2;
     if (operation == "*" || operation == "/") return 1;
     if (operation == "+" || operation == "-") return 0;
     return -1;
@@ -234,7 +236,7 @@ int getOperationPriority(std::string & operation)
 
 std::vector<std::string> parseInput(std::string & expression)
 {
-    bool canBeNegative = false;
+    bool canBeNegative = true;
     std::vector<std::string> parsedExpression;
     std::string number;
     std::string functionExpression;
@@ -243,6 +245,16 @@ std::vector<std::string> parseInput(std::string & expression)
     for (int i = 0; i < expression.length(); i++)
     {
         ch = expression[i];
+        if (ch == '(')
+        {
+            if (canBeNegative)
+            {
+                parsedExpression.emplace_back(1, '~');
+                number = "";
+            }
+            canBeNegative = true;
+            parsedExpression.emplace_back(1, ch);
+        }
         if (isdigit(ch))
         {
             number += ch;
@@ -266,11 +278,7 @@ std::vector<std::string> parseInput(std::string & expression)
                 functionExpression = "";
             }
         }
-        if (ch == '(')
-        {
-            canBeNegative = true;
-            parsedExpression.emplace_back(1, ch);
-        }
+
         if (ch == '-')
         {
             if (canBeNegative)
@@ -281,6 +289,10 @@ std::vector<std::string> parseInput(std::string & expression)
             else
             {
                 parsedExpression.emplace_back(1, ch);
+            }
+            if (i == 0)
+            {
+                canBeNegative = true;
             }
         }
         if (ch == '+' || ch == '*' || ch == '/' ||
@@ -306,4 +318,71 @@ void printStack(Stack *& ptr)
         current = current->next;
     }
     std::cout << std::endl;
+}
+
+float countPolish(std::vector<std::string> polish, bool negative)
+{
+    Stack * top = nullptr;
+    for (auto el : polish)
+    {
+        if (isNumeric(el))
+        {
+            push(top, el);
+        }
+        else
+        {
+            float result;
+            if (el == "SIN" || el == "COS" || el == "EXP")
+            {
+                std::string el1 = pop(top);
+                float elFloat = stof(el1);
+
+                if (el == "SIN")
+                {
+                    result = std::sin(elFloat);
+                }
+                else if (el == "COS")
+                {
+                    result = std::cos(elFloat);
+                }
+                else if (el == "EXP")
+                {
+                    result = std::exp(elFloat);
+                }
+            }
+            if (el == "+" || el == "-" || el == "/" || el == "*" || el == "^")
+            {
+                std::string el1 = pop(top);
+                std::string el2 = pop(top);
+                float el1Float = stof(el1);
+                float el2Float = stof(el2);
+                if (el == "+")
+                {
+                    result = el2Float + el1Float;
+                }
+                else if (el == "-")
+                {
+                    result = el2Float - el1Float;
+                }
+                else if (el == "*")
+                {
+                    result = el2Float * el1Float;
+                }
+                else if (el == "/")
+                {
+                    result = el2Float / el1Float;
+                }
+                else if (el == "^")
+                {
+                    result = std::pow(el2Float, el1Float);
+                }
+            }
+            std::string stringRes = std::to_string(result);
+            push(top, stringRes);
+        }
+    }
+    std::string res = pop(top);
+    if (negative)
+        return -std::stof(res);
+    return std::stof(res);
 }
