@@ -33,7 +33,7 @@ std::string pop(Stack *& ptr);
 std::string getTop(Stack *& ptr);
 void printStack(Stack *& ptr);
 
-float countPolish(std::vector<std::string> polish, bool negative);
+float countPolish(std::vector<std::string> polish);
 
 bool isNumeric(std::string & number);
 int getOperationPriority(std::string & operation);
@@ -59,7 +59,6 @@ int main(int argc, char * args[])
 
     Stack * top = nullptr;
     std::vector<std::string> polish;
-    bool negative = false;
 
     std::string expression;
     getline(inFile, expression);
@@ -82,11 +81,6 @@ int main(int argc, char * args[])
 
     for (auto element : parseInput(expression))
     {
-        // Правило 0
-        if (element == "~")
-        {
-            negative = true;
-        }
         // Правило 1
         if (isNumeric(element))
         {
@@ -123,11 +117,24 @@ int main(int argc, char * args[])
             else if (element == "^" || element == "SIN" || element == "COS" || element == "EXP")
             {
                 std::string topOperation = getTop(top);
-                while (getOperationPriority(topOperation) > getOperationPriority(element) &&
-                       (top != nullptr || topOperation != "("))
+                while (top != nullptr || topOperation != "(")
                 {
-                    polish.push_back(pop(top));
-                    topOperation = getTop(top);
+                    if (getOperationPriority(topOperation) > getOperationPriority(element))
+                    {
+                        polish.push_back(pop(top));
+                        if (top != nullptr)
+                        {
+                            topOperation = getTop(top);
+                        }
+                        else
+                        {
+                            break;
+                        }
+                    }
+                    else
+                    {
+                        break;
+                    }
                 }
                 push(top, element);
             }
@@ -145,6 +152,10 @@ int main(int argc, char * args[])
                 polish.push_back(pop(top));
             }
             pop(top);
+            if (getTop(top) == "~")
+            {
+                polish.push_back(pop(top));
+            }
         }
         // Печать
         std::cout << element << '\t' << "|";
@@ -180,7 +191,7 @@ int main(int argc, char * args[])
     std::cout << std::endl;
 
     // Счет
-    std::cout << std::endl << "Result: " << countPolish(polish, negative) << std::endl;
+    std::cout << std::endl << "Result: " << countPolish(polish) << std::endl;
 }
 
 
@@ -247,7 +258,7 @@ std::vector<std::string> parseInput(std::string & expression)
         ch = expression[i];
         if (ch == '(')
         {
-            if (canBeNegative)
+            if (i > 0 && expression[i - 1] == '-')
             {
                 parsedExpression.emplace_back(1, '~');
                 number = "";
@@ -290,10 +301,6 @@ std::vector<std::string> parseInput(std::string & expression)
             {
                 parsedExpression.emplace_back(1, ch);
             }
-            if (i == 0)
-            {
-                canBeNegative = true;
-            }
         }
         if (ch == '+' || ch == '*' || ch == '/' ||
             ch == '^' || ch == ')')
@@ -306,6 +313,13 @@ std::vector<std::string> parseInput(std::string & expression)
     {
         parsedExpression.push_back(number);
     }
+
+    for (auto el : parsedExpression)
+    {
+        std::cout << el << ' ';
+    }
+    std::cout << std::endl;
+
     return parsedExpression;
 }
 
@@ -320,7 +334,7 @@ void printStack(Stack *& ptr)
     std::cout << std::endl;
 }
 
-float countPolish(std::vector<std::string> polish, bool negative)
+float countPolish(const std::vector<std::string> polish)
 {
     Stack * top = nullptr;
     for (auto el : polish)
@@ -332,7 +346,7 @@ float countPolish(std::vector<std::string> polish, bool negative)
         else
         {
             float result;
-            if (el == "SIN" || el == "COS" || el == "EXP")
+            if (el == "SIN" || el == "COS" || el == "EXP" || el == "~")
             {
                 std::string el1 = pop(top);
                 float elFloat = stof(el1);
@@ -348,6 +362,10 @@ float countPolish(std::vector<std::string> polish, bool negative)
                 else if (el == "EXP")
                 {
                     result = std::exp(elFloat);
+                }
+                else if (el == "~")
+                {
+                    result = (-1) * elFloat;
                 }
             }
             if (el == "+" || el == "-" || el == "/" || el == "*" || el == "^")
@@ -374,7 +392,8 @@ float countPolish(std::vector<std::string> polish, bool negative)
                 }
                 else if (el == "^")
                 {
-                    result = std::pow(el2Float, el1Float);
+                    if (el2Float != 0) result = std::pow(el2Float, el1Float);
+                    else result = 0;
                 }
             }
             std::string stringRes = std::to_string(result);
@@ -382,7 +401,6 @@ float countPolish(std::vector<std::string> polish, bool negative)
         }
     }
     std::string res = pop(top);
-    if (negative)
-        return -std::stof(res);
+
     return std::stof(res);
 }
