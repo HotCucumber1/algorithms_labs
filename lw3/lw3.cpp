@@ -21,13 +21,13 @@
 
 struct Node
 {
-    std::string name;
+    std::string content;
     char type;
     std::vector<std::shared_ptr<Node>> children;
     const int childrenCount = children.size();
 
-    Node(std::string name, char type)
-        : name(std::move(name))
+    Node(std::string content, char type)
+        : content(std::move(content))
         , type(type)
     {
     }
@@ -41,93 +41,58 @@ int countLevel(const std::string& line) {
     return count;
 }
 
-
-struct Stack
+std::shared_ptr<Node> buildTreeFromFile(std::ifstream& treeFile)
 {
-    Node* key{};
-    Stack* next{};
-};
+    std::string line;
+    std::shared_ptr<Node> root = nullptr;
+    std::vector<std::pair<std::shared_ptr<Node>, int>> nodeStack;
 
-
-struct FileNode
-{
-    std::string name;
-    NodeType type{};
-    int level = 0;
-};
-
-void push(Stack *& ptr, Node* nodePtr);
-Node* pop(Stack *& ptr);
-
-
-FileNode parseStringToFileNode(const std::string& nodeElement)
-{
-    FileNode node;
-    std::vector<std::string> stripedStr;
-    std::string tempStr;
-
-    for (auto ch : nodeElement)
+    while (std::getline(treeFile, line))
     {
-        if (ch == '.')
+        int nodeLevel = countLevel(line);
+        std::string lineContent = line.substr(nodeLevel);
+
+        char nodeType = (line.size() > lineContent.size() + nodeLevel + 1)
+                ? line[lineContent.size() + nodeLevel + 1]
+                : ' ';
+
+        auto newNode = std::make_shared<Node>(lineContent, nodeType);
+        if (nodeStack.empty())
         {
-            node.level += 1;
+            root = newNode;
         }
-        else if (ch != ' ')
+        else
         {
-            tempStr += ch;
+            // подняться к верхнему узлу
+            while (!nodeStack.empty() && nodeStack.back().second >= nodeLevel)
+            {
+                nodeStack.pop_back();
+            }
+            if (!nodeStack.empty())
+            {
+                nodeStack.back().first->children.push_back(newNode);
+            }
         }
-        else {
-            stripedStr.push_back(tempStr);
-            tempStr = "";
-        }
-    }
-    if (!tempStr.empty())
-    {
-        stripedStr.push_back(tempStr);
+        nodeStack.emplace_back(newNode, nodeLevel);
     }
 
-    node.type = (stripedStr.size() > 1 ?
-                (stripedStr[1] == "a" ? _and_ : _or_) :
-                _leaf_);
-
-    node.name = stripedStr[0];
-    return node;
+    return root;
 }
 
-
-void addToTree(FileNode el, Node* nodePtr);
-//{
-//    auto newElement = strip(el);
-//
-//    auto* newNode = new Node;
-//    newNode->name = el;
-//    newNode->type = (newElement[1] == "a" ? _and_ : _or_);
-//    newNode->children = {};
-//
-//    if (nodePtr == nullptr)
-//    {
-//        nodePtr = newNode;
-//    }
-//    else
-//    {
-//
-//    }
-//}
-
-
-void readFromFile(const std::string& fileName, Node* rootPtr)
-{
-    std::ifstream inFile(fileName);
-    if (!inFile.is_open())
+void printTree(const std::shared_ptr<Node>& node, int depth=0) {
+    if (!node)
     {
-        std::cout << "Ошибка открытия файла " << fileName << std::endl;
-        exit(1);
+        return;
     }
-    std::string line;
-    while (getline(inFile, line))
+
+    std::cout << std::string(depth, '.')
+              << node->content
+              << ' '
+              << node->type
+              << "\n";
+    for (auto& child : node->children)
     {
-        auto newNode = parseStringToFileNode(line);
-        addToTree(newNode, rootPtr);
+        printTree(child, depth + 1);
     }
 }
 
@@ -140,26 +105,15 @@ int main(int argc, char* args[])
         std::cout << "Передано неверное количество файлов" << std::endl;
         return 1;
     }
-
-
+    std::ifstream inFile(args[1]);
+    if (!inFile.is_open())
+    {
+        std::cout << "Ошибка открытия файла " << args[1] << std::endl;
+        return 1;
+    }
+    auto tree = buildTreeFromFile(inFile);
+    printTree(tree);
     return 0;
 }
 
 
-
-//void push(Stack *& ptr, Node* nodePtr)
-//{
-//    auto* element = new Stack;
-//    element->key = nodePtr;
-//    element->next = ptr;
-//    ptr = element;
-//}
-//
-//Node* pop(Stack *& ptr)
-//{
-//    Stack * element = ptr;
-//    ptr = ptr->next;
-//    Node* nodePtr = element->key;
-//    delete element;
-//    return nodePtr;
-//}
