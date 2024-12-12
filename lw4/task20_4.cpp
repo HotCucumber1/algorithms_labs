@@ -147,16 +147,21 @@ void TopologicSort(std::shared_ptr<Node>& graphNode, std::vector<std::shared_ptr
     nodeStack.push_back(graphNode);
 }
 
-int GetMaxTime(std::vector<std::shared_ptr<Node>> &nodeStack)
+void GetMaxTimePath(std::vector<std::shared_ptr<Node>> &nodeStack)
 {
     int maxTime = 0;
     while (!nodeStack.empty())
     {
         auto node = nodeStack.back();
         nodeStack.pop_back();
+        std::cout
+            << node->orderNum << ' '
+            << node->content << ' '
+            << node->time
+            << std::endl;
         maxTime += node->time;
     }
-    return maxTime;
+    std::cout << std::endl << "Максимальное время: " << maxTime << std::endl;
 }
 
 
@@ -185,8 +190,7 @@ int main(int argc, char* args[])
 
     auto graph = ReadFromFile(inFile1, inFile2);
     TopologicSort(graph, nodeStack);
-    auto maxTime = GetMaxTime(nodeStack);
+    GetMaxTimePath(nodeStack);
 
-    std::cout << maxTime << std::endl;
     return 0;
 }
