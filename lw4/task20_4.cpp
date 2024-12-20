@@ -102,6 +102,8 @@ std::shared_ptr<Node> ReadFromFile(std::ifstream& inFile1, std::ifstream& inFile
 {
     std::string line;
     std::unordered_map<int, std::shared_ptr<Node>> graphBase;
+    bool isRoot = true;
+    std::shared_ptr<Node> root;
 
     while (std::getline(inFile1, line))
     {
@@ -126,68 +128,93 @@ std::shared_ptr<Node> ReadFromFile(std::ifstream& inFile1, std::ifstream& inFile
         graphBase[order.first]->next.push_back(
             graphBase[order.second]
         );
-    }
-    return graphBase[1];
-}
 
-void AllTopologicalSortsUtil(
-    std::shared_ptr<Node>& node,
-    std::vector<std::shared_ptr<Node>>& currentSort,
-    std::vector<std::vector<std::shared_ptr<Node>>>& allPaths
-)
-{
-    if (node->color == Color::white) {
-        currentSort.push_back(node);
-
-        for (auto& nextNode : node->next) {
-            if (nextNode->color == Color::gray) {
-                break;
-            }
-            node->color = Color::gray;
-            AllTopologicalSortsUtil(nextNode, currentSort, allPaths);
-
-            currentSort.pop_back();
-            node->color = Color::white;
+        if (isRoot) {
+            root = graphBase[order.first];
+            isRoot = false;
         }
     }
-    if (node->next.empty()) {
-        allPaths.push_back(currentSort);
-    }
+    return root;
 }
 
 
-std::vector<std::vector<std::shared_ptr<Node>>> AllTopologicalSorts(std::shared_ptr<Node>& node) {
-    std::vector<std::vector<std::shared_ptr<Node>>> allPaths;
-    std::vector<std::shared_ptr<Node>> currentSort;
+//void MaxPath(std::shared_ptr<Node>& node, int& currentTime, int& maxTime)
+//{
+//    currentTime += node->time;
+//    if (node->next.empty()) {
+//        if (currentTime > maxTime) {
+//            maxTime = currentTime;
+//        }
+//        return;
+//    }
+//    for (auto& child : node->next) {
+//        MaxPath(child, currentTime, maxTime);
+//
+//        currentTime -= child->time;
+//    }
+//}
 
-    AllTopologicalSortsUtil(node, currentSort, allPaths);
-
-    std::cout << "Все возможные топологические сортировки:" << std::endl;
-    for (const auto& path : allPaths) {
-        for (auto node : path) {
-            std::cout << node->orderNum << " ";
-        }
-        std::cout << std::endl;
-    }
-
-    return allPaths;
-}
-
-void DropToWhite(std::shared_ptr<Node>& graphNode)
-{
-    graphNode->color = Color::white;
-    for (auto node : graphNode->next) {
-        DropToWhite(node);
-    }
-}
+//void AllTopologicalSortsUtil(
+//    std::shared_ptr<Node>& node,
+//    std::vector<std::shared_ptr<Node>>& currentSort,
+//    std::vector<std::vector<std::shared_ptr<Node>>>& allPaths
+//)
+//{
+//    if (node->color == Color::white) {
+//        currentSort.push_back(node);
+//
+//        for (auto& nextNode : node->next) {
+//            if (nextNode->color == Color::gray) {
+//                break;
+//            }
+//            node->color = Color::gray;
+//            AllTopologicalSortsUtil(nextNode, currentSort, allPaths);
+//
+//            currentSort.pop_back();
+//            node->color = Color::white;
+//        }
+//    }
+//    if (node->next.empty()) {
+//        allPaths.push_back(currentSort);
+//    }
+//}
+//
+//
+//std::vector<std::vector<std::shared_ptr<Node>>> AllTopologicalSorts(std::shared_ptr<Node>& node) {
+//    std::vector<std::vector<std::shared_ptr<Node>>> allPaths;
+//    std::vector<std::shared_ptr<Node>> currentSort;
+//
+//    AllTopologicalSortsUtil(node, currentSort, allPaths);
+//
+//    std::cout << "Все возможные топологические сортировки:" << std::endl;
+//    for (const auto& path : allPaths) {
+//        for (auto node : path) {
+//            std::cout << node->orderNum << " ";
+//        }
+//        std::cout << std::endl;
+//    }
+//
+//    return allPaths;
+//}
+//
+//void DropToWhite(std::shared_ptr<Node>& graphNode)
+//{
+//    graphNode->color = Color::white;
+//    for (auto node : graphNode->next) {
+//        DropToWhite(node);
+//    }
+//}
 
 bool TopologicSort(
     std::shared_ptr<Node>& graphNode,
     std::vector<std::shared_ptr<Node>> &nodeStack,
     std::vector<std::shared_ptr<Node>> &loopStack,
-    std::shared_ptr<Node> &cycleStart
+    std::shared_ptr<Node> &cycleStart,
+    int& currentTime,
+    int& maxTime
 )
 {
+    currentTime += graphNode->time;
     graphNode->color = Color::gray;
     loopStack.push_back(graphNode);
     for (auto node : graphNode->next) {
@@ -198,32 +225,42 @@ bool TopologicSort(
             cycleStart = node;
             return true;
         }
-        if (TopologicSort(node, nodeStack, loopStack, cycleStart)) {
+        if (TopologicSort(node, nodeStack, loopStack, cycleStart, currentTime, maxTime)) {
             return true;
         }
+        currentTime -= node->time;
+    }
+    if (currentTime > maxTime) {
+        maxTime = currentTime;
     }
     graphNode->color = Color::black;
     loopStack.pop_back();
     nodeStack.push_back(graphNode);
 
-    DropToWhite(graphNode);
     return false;
 }
 
-void PrintMaxTimePath(std::vector<std::vector<std::shared_ptr<Node>>>& allPath)
-{
-    int maxTime = 0;
-    for (auto path : allPath) {
-        int currentPath = 0;
-        for (auto node : path) {
-            currentPath += node->time;
-        }
-        if (currentPath > maxTime) {
-            maxTime = currentPath;
-        }
-    }
-    std::cout << std::endl << "Максимальное время: " << maxTime << std::endl;
-}
+//void PrintMaxTimePath(std::vector<std::vector<std::shared_ptr<Node>>>& allPath)
+//{
+//    int maxTime = 0;
+//    std::vector<std::shared_ptr<Node>> maxPath;
+//    for (auto& path : allPath) {
+//        int currentPathTime = 0;
+//        for (auto& node : path) {
+//            currentPathTime += node->time;
+//        }
+//        if (currentPathTime > maxTime) {
+//            maxTime = currentPathTime;
+//            maxPath = path;
+//        }
+//    }
+//    std::cout << std::endl << "Максимальное время: " << maxTime << std::endl;
+//    std::cout << "Максимальный путь: ";
+//    for (auto& node : maxPath) {
+//        std::cout << node->orderNum << ' ';
+//    }
+//    std::cout << std::endl;
+//}
 
 void PrintLoop(std::vector<std::shared_ptr<Node>> &loopStack, const std::shared_ptr<Node>& cycleStart) {
     if (cycleStart == nullptr) {
@@ -275,15 +312,27 @@ int main(int argc, char* args[])
     std::vector<std::shared_ptr<Node>> loopStack;
     std::shared_ptr<Node> cycleStart = nullptr;
 
+    std::cout << "READ GRAPH ..." << std::endl;
     auto graph = ReadFromFile(inFile1, inFile2);
 
-    if (TopologicSort(graph, nodeStack, loopStack, cycleStart)) {
+    std::cout << "FIND PATH ..." << std::endl;
+
+    int currentTime = 0;
+    int maxTime = 0;
+
+    if (TopologicSort(graph, nodeStack, loopStack, cycleStart, currentTime, maxTime)) {
         PrintLoop(loopStack, cycleStart);
         exit(1);
     }
-    auto allPaths = AllTopologicalSorts(graph);
 
-    PrintMaxTimePath(allPaths);
-
+    while (!nodeStack.empty()) {
+        std::cout << nodeStack.back()->content;
+        nodeStack.pop_back();
+        if (!nodeStack.empty()) {
+            std::cout << " -> ";
+        }
+    }
+    std::cout << std::endl << std::endl;
+    std::cout << "Max path: " << maxTime << std::endl;
     return 0;
 }
