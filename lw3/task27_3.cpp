@@ -91,7 +91,6 @@ std::shared_ptr<Node> buildTreeFromFile(std::ifstream& treeFile)
         nodeStack.emplace_back(newNode, nodeLevel);
         last = newNode;
     }
-
     return root;
 }
 
